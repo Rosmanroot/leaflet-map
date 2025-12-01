@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Peta Pasar Tradisional & Modern di Bandung</title>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+<link rel="stylesheet" href="style.css" /> 
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+</head>
+<body>
+
+<div class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+        <i class="fas fa-map-marker-alt"></i>
+        <h2 id="sidebarTitle">Tambah Lokasi Pasar</h2>
+    </div>
+
+    <div id="addLocationForm" class="sidebar-section">
+        <h3><i class="fas fa-store"></i> Input Data Pasar Baru</h3>
+        <div class="form-group">
+            <label for="locationTitle"><i class="fas fa-heading"></i> Nama Pasar</label>
+            <input type="text" id="locationTitle" placeholder="Misal: Pasar Baru Trade Center" />
+        </div>
+        <div class="form-group">
+            <label for="typeSelect"><i class="fas fa-tags"></i> Tipe Pasar</label>
+            <select id="typeSelect" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #34495e; background: #34495e; color: #ecf0f1; box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);">
+                <option value="Tradisional">Tradisional</option>
+                <option value="Modern">Modern</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="description"><i class="fas fa-info-circle"></i> Deskripsi/Keterangan</label>
+            <textarea id="description" rows="3" placeholder="Contoh: Terkenal dengan kain dan baju grosir..." style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #34495e; outline: none; background: #34495e; color: #ecf0f1; box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);"></textarea>
+        </div>
+        <div class="form-group">
+            <label for="coordinates"><i class="fas fa-globe"></i> Koordinat</label>
+            <input type="text" id="coordinates" placeholder="Klik peta untuk mendapatkan koordinat" readonly />
+            <small style="color: #bdc3c7;">* Klik pada peta untuk mengisi otomatis</small>
+        </div>
+        <button id="addMarkerButton" class="btn btn-primary">
+            <i class="fas fa-map-pin"></i> Tambah Marker
+        </button>
+    </div>
+    
+    <div class="sidebar-footer">
+        <p>&copy; 2025 GeoLokasi</p>
+    </div>
+</div>
+
+<div id="map"></div>
+
+
+<script>
+console.log("✅ JavaScript berjalan. Peta Pasar siap digunakan!");
+
+// MAP posisi awal
+var map = L.map('map').setView([-6.9175, 107.6191], 13); // Fokuskan ke pusat Kota Bandung
+
+// TILE LAYER
+L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    subdomains: 'abcd',
+    maxZoom: 19
+}).addTo(map);
+
+// DATA KOORDINAT PASAR di Bandung (Contoh data)
+var locations = [
+    { title: "Pasar Baru Trade Center", type: "Modern", description: "Pusat grosir tekstil dan pakaian.", coords: [-6.9189, 107.6041] },
+    { title: "Pasar Induk Gedebage", type: "Tradisional", description: "Pasar induk besar untuk sayur dan buah.", coords: [-6.9631, 107.7125] },
+    { title: "Pasar Kosambi", type: "Tradisional", description: "Pasar tradisional yang ramai di pusat kota.", coords: [-6.9208, 107.6200] },
+    { title: "Trans Studio Mall", type: "Modern", description: "Mall besar dengan area perbelanjaan dan rekreasi.", coords: [-6.9216, 107.6366] },
+    { title: "Pasar Cibaduyut", type: "Tradisional", description: "Terkenal dengan sentra penjualan sepatu dan kulit.", coords: [-6.9535, 107.5759] },
+    { title: "Cihampelas Walk (Ciwalk)", type: "Modern", description: "Mall terbuka yang populer untuk fashion dan kuliner.", coords: [-6.8920, 107.5990] }
+];
+
+// Custom Icon (Opsional, untuk membedakan Pasar Tradisional dan Modern)
+var traditionalIcon = L.divIcon({
+    className: 'custom-div-icon',
+    html: '<i class="fas fa-store" style="color:#e74c3c; font-size: 28px;"></i>', // Merah untuk Tradisional
+    iconSize: [28, 28],
+    iconAnchor: [14, 28]
+});
+
+var modernIcon = L.divIcon({
+    className: 'custom-div-icon',
+    html: '<i class="fas fa-building" style="color:#2980b9; font-size: 28px;"></i>', // Biru untuk Modern
+    iconSize: [28, 28],
+    iconAnchor: [14, 28]
+});
+
+// Buat semua marker di map
+locations.forEach(function(loc) {
+    const icon = loc.type === "Tradisional" ? traditionalIcon : modernIcon;
+    var marker = L.marker(loc.coords, { icon: icon }).addTo(map);
+    marker.bindPopup(`
+        <b>${loc.title}</b><br>
+        <small>Tipe: ${loc.type}</small><br>
+        <small>Deskripsi: ${loc.description}</small><br>
+        <small>Koordinat: ${loc.coords[0]}, ${loc.coords[1]}</small>
+    `);
+});
+
+// Logic Tambah Marker
+const addMarkerButton = document.getElementById('addMarkerButton');
+const locationTitleInput = document.getElementById('locationTitle');
+const coordinatesInput = document.getElementById('coordinates'); 
+const typeSelect = document.getElementById('typeSelect');
+const descriptionInput = document.getElementById('description');
+let tempClickMarker = null;
+
+// Event listener untuk klik di peta
+map.on('click', function(e) {
+    // Menghapus marker sementara sebelumnya (jika ada)
+    if (tempClickMarker) {
+        map.removeLayer(tempClickMarker);
+    }
+
+    const lat = e.latlng.lat.toFixed(6); // Membulatkan ke 6 desimal
+    const lon = e.latlng.lng.toFixed(6); // Membulatkan ke 6 desimal
+
+    // Mengisi input koordinat di sidebar
+    coordinatesInput.value = `${lat}, ${lon}`;
+
+    // Menambahkan marker sementara di tempat yang diklik untuk visual feedback
+    tempClickMarker = L.marker(e.latlng, {
+        icon: L.divIcon({
+            className: 'temp-marker-icon',
+            html: '<i class="fas fa-map-marker-alt" style="color:#f1c40f; font-size: 28px;"></i>', // Kuning/Oranye untuk Temp
+            iconSize: [28, 28],
+            iconAnchor: [14, 28]
+        })
+    }).addTo(map);
+    tempClickMarker.bindPopup(`Lokasi yang dipilih: <br><b>${lat}, ${lon}</b>`).openPopup();
+});
+
+
+addMarkerButton.addEventListener('click', function() {
+    const title = locationTitleInput.value.trim();
+    const coordsStr = coordinatesInput.value.trim();
+    const type = typeSelect.value;
+    const description = descriptionInput.value.trim();
+
+    // Validasi Input
+    if (!title || !coordsStr) {
+        alert("Nama Pasar dan Koordinat harus diisi!");
+        return;
+    }
+
+    const coordsArray = coordsStr.split(',').map(s => parseFloat(s.trim()));
+    const lat = coordsArray[0];
+    const lon = coordsArray[1];
+
+    if (isNaN(lat) || isNaN(lon) || coordsArray.length !== 2) {
+        alert("Format koordinat tidak valid. Harusnya 'Latitude, Longitude'.");
+        return;
+    }
+
+    // Tentukan ikon berdasarkan tipe
+    const icon = type === "Tradisional" ? traditionalIcon : modernIcon;
+
+    // Tambahkan Marker Baru
+    try {
+        const newMarker = L.marker([lat, lon], { icon: icon }).addTo(map);
+        newMarker.bindPopup(`
+            <b>${title} (Baru)</b><br>
+            <small>Tipe: ${type}</small><br>
+            <small>Deskripsi: ${description || '-'}</small><br>
+            <small>Koordinat: ${lat}, ${lon}</small>
+        `).openPopup();
+
+        // Fokuskan peta ke lokasi marker baru
+        map.setView([lat, lon], 16, { animate: true, duration: 1.5 });
+
+        alert(`Marker "${title}" berhasil ditambahkan di peta!`);
+
+        // Kosongkan form setelah berhasil
+        locationTitleInput.value = '';
+        coordinatesInput.value = '';
+        descriptionInput.value = '';
+        
+        // Hapus marker sementara setelah marker permanen ditambahkan
+        if (tempClickMarker) {
+            map.removeLayer(tempClickMarker);
+            tempClickMarker = null;
+        }
+
+    } catch (e) {
+        alert("Gagal menambahkan marker. Pastikan koordinat berada dalam rentang yang wajar.");
+        console.error("Error adding marker:", e);
+    }
+});
+</script>
+
+</body>
+</html>
